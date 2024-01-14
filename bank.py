@@ -5,8 +5,11 @@ from openai import OpenAI
 import time
 import pandas as pd
 import os
+from dotenv import load_dotenv
 
-client = OpenAI(api_key='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')
+load_dotenv()
+apiKey = os.getenv("API_KEY")
+client = OpenAI(api_key=apiKey)
 
 def recentFile(folder_path):
     files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and not f.startswith('.DS_Store') and f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))]
@@ -85,6 +88,13 @@ for i in range(0, len(transactions), 3):
         data['Amount'].append(prices[i+j])
         time.sleep(21)
 
+
+
+
+
+
+
+
 df = pd.DataFrame(data)
 # # Save to Excel file with adjusted column width
 # excel_path = '/Users/thamim/Downloads/Transactions.xlsx'
@@ -128,4 +138,5 @@ with pd.ExcelWriter(excel_path, engine='openpyxl', mode='a', if_sheet_exists='re
         worksheet.column_dimensions[chr(65 + i)].width = max_len
 
 print("Finished Excel transfer.")
+
 

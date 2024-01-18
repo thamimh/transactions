@@ -1,0 +1,27 @@
+{% extends 'layout.html' %} {% block content %}
+<div class="jumbotron">
+  <h1 class="display-4">Organize Transactions</h1>
+  <p class="lead">Upload a .png file to organize your transactions.</p>
+  <hr class="my-4" />
+
+  <!-- File input form -->
+  <form
+    action="{{ url_for('upload_file') }}"
+    method="post"
+    enctype="multipart/form-data"
+  >
+    <div class="form-group">
+      <label for="image">Choose a .png file:</label>
+      <input
+        type="file"
+        class="form-control-file"
+        id="image"
+        name="image"
+        accept=".png"
+        required
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">Organize Transactions</button>
+  </form>
+</div>
+{% endblock %}

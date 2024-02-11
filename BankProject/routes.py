@@ -3,7 +3,7 @@ from BankProject.models import User, Transaction
 from BankProject import app
 from BankProject import db
 from BankProject.forms import RegistrationForm, LoginForm
-from flask_login import login_user, current_user, logout_user
+from flask_login import login_user, current_user, logout_user, login_required
 
 from werkzeug.utils import secure_filename
 import os
@@ -14,34 +14,51 @@ import time
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
-apiKey = os.getenv("API_KEY")
-client = OpenAI(api_key=apiKey)
+#load_dotenv()
+#apiKey = os.getenv("API_KEY")
+client = OpenAI(api_key='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')
 
-@app.route('/', methods = ['GET', 'POST'])
-@app.route('/home')
+@app.route('/upload', methods = ['GET', 'POST'])
+@login_required
 def upload_file():
     if request.method == 'POST':
         # check if the post request has the file part
         if 'image' not in request.files:
-            flash('No file part')
+            flash('No file part', 'error')
             return render_template('input.html')
         image = request.files['image']
+        bank_choice = request.form.get('bankSelect')
         # If the user does not select a file, the browser submits an
         # empty file without a filename.
         if image.filename == '':
             flash('No selected file')
             return render_template('input.html')
         if image and allowed_file(image.filename):
-            filename = secure_filename(image.filename)
-            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            extracted_data = extract_text_from_image(image)
+            if bank_choice == 'bofa':
+                transactions, dates, prices = extract_purchases_bofa(extracted_data)
+            elif bank_choice == 'chase':
+                transactions, dates, prices = extract_purchases_chase(extracted_data)
+            transactions = createCategory(transactions)
+            
+            for index in range(len(transactions)):
+                new_transaction = Transaction(price=prices[index], category = transactions[index], date = dates[index], user = current_user)
+                db.session.add(new_transaction)
+            db.session.commit()
+
             return redirect(url_for('organize'))
     return render_template('input.html')
 
 @app.route('/organize')
 def organize():
-    return 'Hello world'
+    user_transactions = Transaction.query.filter_by(user=current_user)
+    transactions = [transaction.category for transaction in user_transactions]
+    dates = [transaction.date for transaction in user_transactions]
+    prices = [transaction.price for transaction in user_transactions]
 
+    return render_template('organize.html', transactions=transactions, dates=dates, prices=prices)
+
+@app.route('/')
 @app.route("/register", methods = ['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -156,5 +173,6 @@ def createCategory(extractedTransactions):
     for index, transaction in enumerate(extractedTransactions):
         category = categorize_transaction(transaction)
         extractedTransactions[index] = category
+        time.sleep(21)
     return extractedTransactions
 
